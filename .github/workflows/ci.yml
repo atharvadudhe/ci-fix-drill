@@ -2,7 +2,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: ['*']
+    branches: ['**']
   pull_request:
     branches: [main]
 
@@ -11,16 +11,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
+
       - name: Install dependencies
-        run: npm install   # BUG 1 — should be npm ci
+        # npm ci uses the committed lockfile for reproducible CI installs.
+        run: npm ci
 
   test:
     runs-on: ubuntu-latest
-    # BUG 2 — missing needs: install, so test runs in parallel with install
-    # BUG 3 — no checkout or npm ci step, so node_modules is empty on this fresh machine
+    needs: install
+
     steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        # Each job has a fresh runner, so dependencies must be installed here too.
+        run: npm ci
+
       - name: Run tests
         run: npm test
